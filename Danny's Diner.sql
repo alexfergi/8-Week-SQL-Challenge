@@ -258,3 +258,75 @@ ORDER BY 1;
 |A       |1020        |
 |B       |320         |
 +--------+------------+
+
+-- Bonus Questions
+-- 11. Join all the things
+
+SELECT
+    customer_id, order_date, product_name, price,
+    (IF(order_date >= join_date, 'Y', 'N')) AS member
+FROM (
+    SELECT
+        *
+    FROM sales JOIN menu USING (product_id) LEFT JOIN members USING (customer_id)
+) subq
+ORDER BY 1, 2;
+
++-----------+----------+------------+-----+------+
+|customer_id|order_date|product_name|price|member|
++-----------+----------+------------+-----+------+
+|A          |2021-01-01|sushi       |10   |N     |
+|A          |2021-01-01|curry       |15   |N     |
+|A          |2021-01-07|curry       |15   |Y     |
+|A          |2021-01-10|ramen       |12   |Y     |
+|A          |2021-01-11|ramen       |12   |Y     |
+|A          |2021-01-11|ramen       |12   |Y     |
+|B          |2021-01-01|curry       |15   |N     |
+|B          |2021-01-02|curry       |15   |N     |
+|B          |2021-01-04|sushi       |10   |N     |
+|B          |2021-01-11|sushi       |10   |Y     |
+|B          |2021-01-16|ramen       |12   |Y     |
+|B          |2021-02-01|ramen       |12   |Y     |
+|C          |2021-01-01|ramen       |12   |N     |
+|C          |2021-01-01|ramen       |12   |N     |
+|C          |2021-01-07|ramen       |12   |N     |
++-----------+----------+------------+-----+------+
+
+-- 12. Rank all the things
+
+WITH cte AS (
+    SELECT
+        customer_id, order_date, product_name, price,
+        (IF(order_date >= join_date, 'Y', 'N')) AS member
+    FROM sales
+        JOIN menu USING (product_id)
+        LEFT JOIN members USING (customer_id)
+    ORDER BY 1, 2
+)
+SELECT
+    *,
+    CASE WHEN member = 'N' THEN NULL
+        ELSE DENSE_RANK() OVER (PARTITION BY customer_id ORDER BY order_date) END AS ranking
+FROM cte;
+
++-----------+----------+------------+-----+------+-------+
+|customer_id|order_date|product_name|price|member|ranking|
++-----------+----------+------------+-----+------+-------+
+|A          |2021-01-01|sushi       |10   |N     |null   |
+|A          |2021-01-01|curry       |15   |N     |null   |
+|A          |2021-01-07|curry       |15   |Y     |2      |
+|A          |2021-01-10|ramen       |12   |Y     |3      |
+|A          |2021-01-11|ramen       |12   |Y     |4      |
+|A          |2021-01-11|ramen       |12   |Y     |4      |
+|B          |2021-01-01|curry       |15   |N     |null   |
+|B          |2021-01-02|curry       |15   |N     |null   |
+|B          |2021-01-04|sushi       |10   |N     |null   |
+|B          |2021-01-11|sushi       |10   |Y     |4      |
+|B          |2021-01-16|ramen       |12   |Y     |5      |
+|B          |2021-02-01|ramen       |12   |Y     |6      |
+|C          |2021-01-01|ramen       |12   |N     |null   |
+|C          |2021-01-01|ramen       |12   |N     |null   |
+|C          |2021-01-07|ramen       |12   |N     |null   |
++-----------+----------+------------+-----+------+-------+
+
+-- The End
